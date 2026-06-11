@@ -12,9 +12,9 @@
   /* ── countdowns ─────────────────────────────────────────── */
   var weekends = [
     { id: 'cdW1', name: 'Tomorrowland Weekend 1', dates: '17–19 July 2026',
-      start: new Date('2026-07-16T12:00:00+02:00'), end: new Date('2026-07-20T01:00:00+02:00') },
+      start: new Date('2026-07-16T12:00:00+01:00'), end: new Date('2026-07-20T01:00:00+02:00') },
     { id: 'cdW2', name: 'Tomorrowland Weekend 2', dates: '24–26 July 2026',
-      start: new Date('2026-07-23T12:00:00+02:00'), end: new Date('2026-07-27T01:00:00+02:00') }
+      start: new Date('2026-07-23T12:00:00+01:00'), end: new Date('2026-07-27T01:00:00+02:00') }
   ];
   function pad(n) { return String(n).padStart(2, '0'); }
   function tick() {
