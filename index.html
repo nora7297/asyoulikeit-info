@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>As You Like IT — Weekend Away Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <header class="site" data-screen-label="Header">
+    <div class="brand">
+      <h1 id="brandName"><img src="assets/logo-white.png" alt="As You Like IT" /></h1>
+      <span class="tag">As You Like It Festivals · Boom, Belgium</span>
+    </div>
+    <nav class="quick">
+      <a href="#itinerary">Itinerary</a>
+      <a href="#pearls">Pearls</a>
+      <a href="#drinks">Drinks</a>
+      <a href="#weather">Weather</a>
+      <a href="#packing">Packing</a>
+      <a href="#aftermovie">Aftermovie</a>
+    </nav>
+  </header>
+
+  <div class="hero" data-screen-label="Countdown">
+    <p class="kicker">Summer 2026 · De Schorre</p>
+    <h2 id="heroTitle">Tomorrowland Weekend 1 &amp; 2</h2>
+    <p class="sub">Everything you need for your weekend away in one place — countdowns, pearl maths, plans and music.</p>
+    <div class="countdowns">
+      <div class="cd-card" id="cdW1">
+        <h3>Weekend 1</h3>
+        <p class="dates">Fri 17 – Sun 19 July 2026</p>
+        <div class="cd-units">
+          <div class="cd-unit"><b data-u="d">–</b><span>Days</span></div>
+          <div class="cd-unit"><b data-u="h">–</b><span>Hrs</span></div>
+          <div class="cd-unit"><b data-u="m">–</b><span>Min</span></div>
+          <div class="cd-unit"><b data-u="s">–</b><span>Sec</span></div>
+        </div>
+        <button type="button" class="cd-share" data-cd="cdW1">Share countdown</button>
+      </div>
+      <div class="cd-card" id="cdW2">
+        <h3>Weekend 2</h3>
+        <p class="dates">Fri 24 – Sun 26 July 2026</p>
+        <div class="cd-units">
+          <div class="cd-unit"><b data-u="d">–</b><span>Days</span></div>
+          <div class="cd-unit"><b data-u="h">–</b><span>Hrs</span></div>
+          <div class="cd-unit"><b data-u="m">–</b><span>Min</span></div>
+          <div class="cd-unit"><b data-u="s">–</b><span>Sec</span></div>
+        </div>
+        <button type="button" class="cd-share" data-cd="cdW2">Share countdown</button>
+      </div>
+    </div>
+  </div>
+
+  <section class="panel" id="itinerary" data-screen-label="Itinerary">
+    <h2>Itinerary</h2>
+    <p class="lead">The plan for each weekend of your package.</p>
+    <div class="tabs" id="itinTabs">
+      <button type="button" data-wk="w1" class="active">Weekend 1</button>
+      <button type="button" data-wk="w2">Weekend 2</button>
+    </div>
+    <div class="card">
+      <div class="itin-grid" id="itinGrid"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="pearls" data-screen-label="Pearl calculator">
+    <h2>Pearl Calculator</h2>
+    <p class="lead">The festival runs on Pearls. 2025 rate: <b>1 Pearl = €1.82</b> (≈ <b id="pearlGbp">£1.56</b>) — 2026 rate to be confirmed.</p>
+    <div class="pearl-grid">
+      <div class="card converter">
+        <div class="row">
+          <div style="flex:1">
+            <label for="inGbp">Pounds £</label>
+            <input type="number" id="inGbp" min="0" step="5" inputmode="decimal" />
+          </div>
+          <div class="eq">⇄</div>
+          <div style="flex:1">
+            <label for="inEur">Euros €</label>
+            <input type="number" id="inEur" min="0" step="5" value="100" inputmode="decimal" />
+          </div>
+          <div class="eq">⇄</div>
+          <div style="flex:1">
+            <label for="inPearls">Pearls</label>
+            <input type="number" id="inPearls" min="0" step="1" inputmode="decimal" />
+          </div>
+        </div>
+        <p class="pearl-note">Top-ups come in multiples of <b>€20</b> (€20 ≈ 11 Pearls). Top up online before the festival and you get <b>2 bonus Pearls per €100</b> — that's a free beer. Unspent Pearls are refunded minus a small service fee. <span id="gbpRateNote"></span></p>
+      </div>
+      <div class="card converter">
+        <label for="planPearls">Top-up helper — Pearls you plan to spend</label>
+        <input type="number" id="planPearls" min="0" step="1" value="55" inputmode="decimal" />
+        <div class="topup-out" id="topupOut"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="drinks" data-screen-label="Drink prices">
+    <h2>Drink Prices</h2>
+    <p class="lead">2025 prices as an estimate — build a round below to see what a day of drinks really costs.</p>
+    <div class="card">
+      <table class="drinks">
+        <thead>
+          <tr><th>Drink</th><th style="text-align:right">Pearls</th><th style="text-align:right">≈ EUR</th><th style="text-align:right">≈ GBP</th><th style="text-align:right">Qty</th></tr>
+        </thead>
+        <tbody id="drinkRows"></tbody>
+      </table>
+      <div class="round-total">
+        <span>Your round: <span id="roundCount">0</span> drinks</span>
+        <span><b id="roundPearls">0 ⚪</b> &nbsp;·&nbsp; <b id="roundEur">€0.00</b> &nbsp;·&nbsp; <b id="roundGbp">£0.00</b></span>
+        <button type="button" id="roundReset">Reset</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="weather" data-screen-label="Weather">
+    <h2>Weather in Boom</h2>
+    <p class="lead">Live outlook for the festival grounds — the July forecast appears about ten days out.</p>
+    <div class="card">
+      <div class="weather-grid" id="weatherGrid">
+        <div class="weather-now" id="weatherNow"><span>Loading forecast…</span></div>
+        <div class="weather-days" id="weatherDays"></div>
+      </div>
+      <p class="weather-note">Boom averages 23°C highs in mid-July — pack for sun <em>and</em> a rain shower.</p>
+    </div>
+  </section>
+
+  <section class="panel" id="packing" data-screen-label="Packing checklist">
+    <h2>Packing Checklist</h2>
+    <p class="lead">The full camping checklist — ticks save on this device, so you can pack over a few days.</p>
+    <div class="card">
+      <div class="pack-cats" id="packCats"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="aftermovie" data-screen-label="Aftermovie">
+    <h2>Aftermovie</h2>
+    <p class="lead">Relive last year's weekend.</p>
+    <div class="card aftermovie">
+      <iframe id="aftermovieVideo" src="https://www.youtube-nocookie.com/embed/mzbh2vHZqDQ" title="Aftermovie 2025" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width:100%;aspect-ratio:16/9;border:0;border-radius:12px;display:block;background:#000"></iframe>
+      <div class="btn-row">
+        <a class="btn ghost" id="igVideoLink" href="https://instagram.com/asyoulikeitfests" target="_blank" rel="noopener">Watch on Instagram ↗</a>
+        <a class="btn" id="igLink" href="https://instagram.com/asyoulikeitfests" target="_blank" rel="noopener">@asyoulikeitfests on Instagram ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site">
+    <p>Made by As You Like IT — unofficial festival travel partner. Not affiliated with or endorsed by Tomorrowland. Prices are 2025 estimates and may change.</p>
+  </footer>
+
+</div>
+
+<script src="dashboard.js"></script>
+
+</body>
+</html>
