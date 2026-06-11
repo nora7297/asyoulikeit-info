@@ -92,7 +92,7 @@ nav.quick a:hover { color: var(--text); background: var(--card); }
 .cd-share:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── generic section ── */
-section.panel { margin-top: 72px; }
+section.panel { margin-top: 72px; scroll-margin-top: 16px; }
 section.panel > h2 {
   font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: -0.02em;
   margin: 0 0 6px; color: var(--text);
@@ -268,14 +268,46 @@ footer.site {
   .weather-grid { flex-direction: column; }
   .weather-days { grid-template-columns: repeat(4, 1fr); }
   .hero { padding-top: 44px; }
+  /* quick nav becomes a thumb-reachable bar pinned to the bottom */
+  nav.quick {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    background: oklch(0.135 0.005 255 / 0.92);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+  }
+  nav.quick::-webkit-scrollbar { display: none; }
+  nav.quick a { white-space: nowrap; padding: 10px 14px; flex: none; }
+  .wrap { padding-bottom: 150px; }
 }
 @media (max-width: 520px) {
   .cd-unit { min-width: 0; flex: 1; }
   .weather-days { grid-template-columns: repeat(2, 1fr); }
   .converter .row { flex-direction: column; align-items: stretch; gap: 8px; }
   .converter .eq { display: none; }
-  /* drinks table: drop the EUR column on phones (Pearls + GBP remain) */
-  table.drinks th:nth-child(3), table.drinks td:nth-child(3) { display: none; }
-  table.drinks th, table.drinks td { padding-left: 6px; padding-right: 6px; }
-  table.drinks { font-size: 13.5px; }
+  /* drinks table: stacked rows on phones — name + stepper on the first
+     line, all three prices beneath. Keeps Pearls, EUR and GBP visible. */
+  table.drinks thead { display: none; }
+  table.drinks, table.drinks tbody { display: block; }
+  table.drinks tr {
+    display: flex; flex-wrap: wrap; align-items: center;
+    column-gap: 14px; row-gap: 4px;
+    border-top: 1px solid var(--line); padding: 11px 2px;
+  }
+  table.drinks td { display: block; border: 0; padding: 0; }
+  table.drinks td:nth-child(1) { order: 1; flex: 1 1 calc(100% - 140px); font-weight: 600; }
+  table.drinks td:nth-child(5) { order: 2; flex: none; margin-left: auto; }
+  table.drinks td:nth-child(2) { order: 3; }
+  table.drinks td:nth-child(3) { order: 4; }
+  table.drinks td:nth-child(4) { order: 5; }
+  table.drinks td.num { text-align: left; color: var(--text-dim); flex: none; }
+  table.drinks td.pearls { color: var(--accent); }
+  /* finger-sized controls */
+  .stepper button { width: 42px; height: 42px; border-radius: 11px; font-size: 19px; }
+  .check-grid input { width: 19px; height: 19px; }
+  .check-grid label { padding: 9px 2px; }
+  .cd-share { padding: 11px 22px; }
+  .tabs button { padding: 11px 20px; }
 }

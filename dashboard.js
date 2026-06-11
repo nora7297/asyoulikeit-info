@@ -40,7 +40,14 @@
     });
   }
   tick();
-  setInterval(tick, 1000);
+  var cdTimer = setInterval(tick, 1000);
+  document.addEventListener('visibilitychange', function () {
+    clearInterval(cdTimer);
+    if (!document.hidden) {
+      tick();
+      cdTimer = setInterval(tick, 1000);
+    }
+  });
 
   if (wkParam) {
     var hideCd = document.getElementById(wkParam === 'w1' ? 'cdW2' : 'cdW1');
