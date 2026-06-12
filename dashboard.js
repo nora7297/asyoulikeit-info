@@ -184,12 +184,17 @@
     if (!isFinite(p) || p <= 0) { topupOut.innerHTML = 'Enter how many Pearls you expect to spend.'; return; }
     var eurNeeded = p * PEARL_RATE;
     var topup = Math.max(20, Math.ceil(eurNeeded / 20) * 20);
-    var bonus = Math.floor(topup / 100) * 2;
+    /* Bonus Pearls tiers for online top-ups before the deadline */
+    var BONUS_TIERS = [[1000, 25], [700, 17], [500, 12], [300, 7], [200, 4], [100, 2]];
+    var bonus = 0;
+    for (var bi = 0; bi < BONUS_TIERS.length; bi++) {
+      if (topup >= BONUS_TIERS[bi][0]) { bonus = BONUS_TIERS[bi][1]; break; }
+    }
     var got = topup / PEARL_RATE + bonus;
     topupOut.innerHTML =
       'That costs <b>€' + fmt(eurNeeded) + '</b>. Top up <b>€' + topup + '</b> (multiples of €20) → ' +
       '<b>' + fmt(topup / PEARL_RATE, 1) + ' Pearls</b>' +
-      (bonus ? ' + <b>' + bonus + ' bonus</b> if topped up online early' : '') +
+      (bonus ? ' + <b>' + bonus + ' Bonus Pearls</b> if topped up online before the deadline' : '') +
       ' = ' + fmt(got, 1) + ' total.';
   }
   planPearls.addEventListener('input', updateTopup);
