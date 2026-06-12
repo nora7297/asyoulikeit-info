@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var PEARL_RATE = 1.82; // EUR per pearl, 2025 rate
+  var PEARL_RATE = 40 / 21; // EUR per pearl, 2026 rate (€20 = 10.5 Pearls, P1.00 ≈ €1.90)
   var LS = 'boombound.';
 
   /* ── weekend-specific URL (?wk=w1 / ?wk=w2) ─────────── */
