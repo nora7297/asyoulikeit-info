@@ -105,7 +105,7 @@
     btn.addEventListener('click', function () {
       var w = weekends.filter(function (k) { return k.id === btn.getAttribute('data-cd'); })[0];
       if (!w) return;
-      var days = Math.max(0, Math.ceil((w.start.getTime() - Date.now()) / 86400000));
+      var days = Math.max(0, Math.floor((w.start.getTime() - Date.now()) / 86400000));
       var text = days > 0
         ? days + (days === 1 ? ' day' : ' days') + ' until ' + w.name + ' — ' + w.dates
         : w.name + ' is here!';
