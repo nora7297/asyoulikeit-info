@@ -126,27 +126,6 @@ section.panel > p.lead { color: var(--text-dim); margin: 0 0 22px; max-width: 64
 }
 .topup-out b { color: var(--accent); font-family: var(--mono); font-weight: 500; }
 
-/* ── line-up ── */
-.lineup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.lineup-card h3 {
-  margin: 0 0 14px; font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em;
-  text-transform: uppercase; color: var(--text-dim); font-weight: 500;
-}
-ul.lineup-days { margin: 0; padding: 0; list-style: none; }
-ul.lineup-days li {
-  display: flex; gap: 16px; align-items: baseline;
-  padding: 13px 2px; border-top: 1px solid var(--line);
-}
-ul.lineup-days li:first-child { border-top: 0; padding-top: 2px; }
-.ld-day {
-  flex: none; min-width: 54px; font-family: var(--mono); font-size: 12px;
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
-}
-.ld-act { font-size: 15.5px; font-weight: 600; color: var(--text); }
-.ld-act em { font-style: normal; font-weight: 400; color: var(--text-dim); font-size: 13.5px; }
-.ld-act.ld-tbc { font-weight: 400; color: var(--text-dim); }
-.lineup-note { color: var(--text-dim); font-size: 13px; margin: 18px 0 0; line-height: 1.65; }
-
 /* ── drinks table ── */
 table.drinks { width: 100%; border-collapse: collapse; font-size: 14.5px; }
 table.drinks th {
@@ -284,7 +263,7 @@ footer.site {
 
 /* ── responsive ── */
 @media (max-width: 860px) {
-  .countdowns, .pearl-grid, .media-grid, .lineup-grid { grid-template-columns: 1fr; }
+  .countdowns, .pearl-grid, .media-grid { grid-template-columns: 1fr; }
   header.site { flex-direction: column; align-items: flex-start; }
   .weather-grid { flex-direction: column; }
   .weather-days { grid-template-columns: repeat(4, 1fr); }
