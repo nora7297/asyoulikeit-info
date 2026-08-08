@@ -136,11 +136,11 @@ def load_avatar(label: str, size: int) -> Image.Image | None:
 # Cards                                                                        #
 # --------------------------------------------------------------------------- #
 
-def build_cards():
-    """Return list of (rgba_card, entry_beat, hold_beats) plus title/outro."""
+def build_cards(messages):
+    """Return list of card dicts (image, entry_beat, hold_beats)."""
     cards = []
     beat_cursor = 0
-    for i, (name, text) in enumerate(v1.MESSAGES):
+    for i, (name, text) in enumerate(messages):
         card = v1.make_bubble(name, text, v1.ACCENTS[i % len(v1.ACCENTS)])
         avatar = load_avatar(name, 84)
         if avatar is not None:
@@ -212,13 +212,12 @@ def bg_frame(t: float, total: float) -> Image.Image:
 
 def make_scrim() -> Image.Image:
     """Dark vertical scrim so bubbles stay legible over a photo."""
-    scrim = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     arr = np.zeros((H, W, 4), dtype=np.uint8)
     for y in range(H):
-        a = int(150 + 60 * (y / H))          # 150 -> 210 top to bottom
+        a = int(180 + 55 * (y / H))          # 180 -> 235 top to bottom
         arr[y, :, 3] = a
     scrim = Image.fromarray(arr, "RGBA")
-    tealed = Image.new("RGBA", (W, H), (7, 40, 37, 0))
+    tealed = Image.new("RGBA", (W, H), (5, 26, 30, 0))
     tealed.putalpha(scrim.getchannel("A"))
     return tealed
 
@@ -255,15 +254,16 @@ def draw_outro(base: Image.Image, p: float) -> Image.Image:
 # Chat-replay geometry                                                         #
 # --------------------------------------------------------------------------- #
 
-def main():
+def render(messages, out_mp4, out_poster):
     global GRADIENT_BG, BACKDROP, SCRIM, CHROME, EDGE
-    GRADIENT_BG = v1.make_background().convert("RGB")
-    BACKDROP = find_backdrop()
-    SCRIM = make_scrim() if BACKDROP is not None else None
-    CHROME = v1.make_chrome()
-    EDGE = v1.make_edge_mask()
+    if GRADIENT_BG is None:
+        GRADIENT_BG = v1.make_background().convert("RGB")
+        BACKDROP = find_backdrop()
+        SCRIM = make_scrim() if BACKDROP is not None else None
+        CHROME = v1.make_chrome()
+        EDGE = v1.make_edge_mask()
 
-    cards, total_beats = build_cards()
+    cards, total_beats = build_cards(messages)
     gap = v1.BUBBLE_GAP
     x_left = v1.SIDE_MARGIN - 18
 
@@ -349,10 +349,10 @@ def main():
         return frame.convert("RGB")
 
     # Poster: a lively mid-chat frame.
-    compose(entry_time[min(3, len(cards) - 1)] + 0.2).save(OUT_POSTER)
-    print(f"Saved poster -> {OUT_POSTER}")
+    compose(entry_time[min(3, len(cards) - 1)] + 0.2).save(out_poster)
+    print(f"Saved poster -> {out_poster}")
 
-    tmp_mp4 = OUT_MP4 if find_audio() is None else OUT_MP4.replace(".mp4", ".silent.mp4")
+    tmp_mp4 = out_mp4 if find_audio() is None else out_mp4.replace(".mp4", ".silent.mp4")
     writer = imageio.get_writer(
         tmp_mp4, fps=FPS, codec="libx264", macro_block_size=8,
         ffmpeg_params=["-crf", "20", "-preset", "medium",
@@ -367,11 +367,11 @@ def main():
 
     audio = find_audio()
     if audio:
-        mux_audio(tmp_mp4, audio, OUT_MP4, total)
+        mux_audio(tmp_mp4, audio, out_mp4, total)
         os.remove(tmp_mp4)
         print(f"Muxed audio from {os.path.basename(audio)}")
-    size_mb = os.path.getsize(OUT_MP4) / 1e6
-    print(f"Saved video -> {OUT_MP4} ({size_mb:.1f} MB)")
+    size_mb = os.path.getsize(out_mp4) / 1e6
+    print(f"Saved video -> {out_mp4} ({size_mb:.1f} MB)")
 
 
 def mux_audio(video: str, audio: str, out: str, dur: float):
@@ -388,4 +388,4 @@ def mux_audio(video: str, audio: str, out: str, dur: float):
 
 
 if __name__ == "__main__":
-    main()
+    render(v1.MESSAGES, OUT_MP4, OUT_POSTER)

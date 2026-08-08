@@ -67,6 +67,10 @@ MESSAGES = [
     ("’arry", "Thanks everyone for an amazing weekend! 🙌 As You Like It Festivals smashed it 👏"),
     ("Anu", "We’ve just landed in Stockholm. Thank you for an amazing weekend! We really had the best time. A special thank you to Chris and Pete for everything — you made it even more memorable. I hope we get to see each other again next year at Tomorrowland! ❤️"),
     ("Alannah", "We’ve just landed at Heathrow! Thanks for such a great first Tomorrowland - we loved every second! 💃🎶 Thanks Chris and Pete for all your help and organisation! xx"),
+    # Saved contacts, kept but shown by first name only.
+    ("Dean", "Thanks Ben and Chris see you next year not long to go 🙌"),
+    ("Craig", "❤️ As You Like It ❤️ Thanks for an awesome weekend, a fantastic group and ran extremely smoothly as always!!! Thanks again, see you all next year 🔥"),
+    ("James", "Thanks so much Ben and Chris for looking after us again this year! Another amazing experience with you guys. Nice to meet you all and good to see some of you regulars again 💪💪 roll on next year."),
 ]
 
 # --------------------------------------------------------------------------- #
