@@ -102,7 +102,8 @@ EMOJI_RATIO = 1.15         # emoji height relative to body font size
 BG_TOP = (7, 47, 43)
 BG_MID = (7, 94, 84)       # #075E54
 BG_BOTTOM = (10, 61, 56)
-BUBBLE_BG = (255, 255, 255)
+BUBBLE_BG = (255, 255, 255)          # incoming bubble
+OUT_BUBBLE_BG = (220, 248, 198)      # outgoing (your) bubble — WhatsApp green
 BODY_COLOR = (26, 30, 32)
 META_COLOR = (140, 150, 150)
 TICK_COLOR = (83, 189, 235)
@@ -308,22 +309,33 @@ def layout_rich(text: str, font: ImageFont.FreeTypeFont, max_w: int,
 # Cards                                                                       #
 # --------------------------------------------------------------------------- #
 
-def make_bubble(name: str, text: str, accent) -> Image.Image:
+def make_bubble(name: str, text: str, accent, outgoing: bool = False,
+                time_txt: str = "22:47") -> Image.Image:
+    """A WhatsApp chat bubble.
+
+    Incoming (outgoing=False): white, tail top-left, coloured sender name, time
+    only. Outgoing (outgoing=True): light-green, tail top-right, no name, time
+    plus a blue double-tick — i.e. a message "you" sent.
+    """
     line_h = int(BODY_SIZE * 1.42)
     emoji_h = int(BODY_SIZE * EMOJI_RATIO)
     inner_w = BUBBLE_MAX_W - 2 * BUBBLE_PAD_X
 
-    name_img = layout_rich(name, font_name, inner_w, accent, int(NAME_SIZE * 1.1),
-                           int(NAME_SIZE * 1.35))
+    name_img = None
+    if name and not outgoing:
+        name_img = layout_rich(name, font_name, inner_w, accent,
+                               int(NAME_SIZE * 1.1), int(NAME_SIZE * 1.35))
     body_img = layout_rich(text, font_body, inner_w, BODY_COLOR, emoji_h, line_h)
 
     gap_after_name = 8
     meta_h = 26
-    content_h = name_img.height + gap_after_name + body_img.height + meta_h
+    content_h = body_img.height + meta_h
+    if name_img is not None:
+        content_h += name_img.height + gap_after_name
     bubble_h = content_h + 2 * BUBBLE_PAD_Y
     bubble_w = BUBBLE_MAX_W
+    bg = OUT_BUBBLE_BG if outgoing else BUBBLE_BG
 
-    # Card with a soft drop shadow.
     pad = 18
     card = Image.new("RGBA", (bubble_w + pad * 2, bubble_h + pad * 2), (0, 0, 0, 0))
 
@@ -331,29 +343,40 @@ def make_bubble(name: str, text: str, accent) -> Image.Image:
     sdraw = ImageDraw.Draw(shadow)
     sdraw.rounded_rectangle(
         [pad, pad + 6, pad + bubble_w, pad + bubble_h + 6],
-        radius=BUBBLE_RADIUS, fill=(0, 0, 0, 70))
-    shadow = shadow.filter(__import__("PIL.ImageFilter", fromlist=["ImageFilter"]).GaussianBlur(9))
+        radius=BUBBLE_RADIUS, fill=(0, 0, 0, 60))
+    shadow = shadow.filter(
+        __import__("PIL.ImageFilter", fromlist=["ImageFilter"]).GaussianBlur(9))
     card.alpha_composite(shadow)
 
     draw = ImageDraw.Draw(card)
     draw.rounded_rectangle(
-        [pad, pad, pad + bubble_w, pad + bubble_h],
-        radius=BUBBLE_RADIUS, fill=BUBBLE_BG)
-    # Little chat tail on the top-left.
-    draw.polygon([(pad, pad + 22), (pad - 14, pad + 6), (pad + 6, pad + 6)], fill=BUBBLE_BG)
+        [pad, pad, pad + bubble_w, pad + bubble_h], radius=BUBBLE_RADIUS, fill=bg)
+    if outgoing:  # tail on the top-right
+        draw.polygon([(pad + bubble_w, pad + 22), (pad + bubble_w + 14, pad + 6),
+                      (pad + bubble_w - 6, pad + 6)], fill=bg)
+    else:         # tail on the top-left
+        draw.polygon([(pad, pad + 22), (pad - 14, pad + 6), (pad + 6, pad + 6)],
+                     fill=bg)
 
-    ox, oy = pad + BUBBLE_PAD_X, pad + BUBBLE_PAD_Y
-    card.paste(name_img, (ox, oy), name_img)
-    by = oy + name_img.height + gap_after_name
-    card.paste(body_img, (ox, by), body_img)
+    ox = pad + BUBBLE_PAD_X
+    oy = pad + BUBBLE_PAD_Y
+    if name_img is not None:
+        card.paste(name_img, (ox, oy), name_img)
+        oy += name_img.height + gap_after_name
+    card.paste(body_img, (ox, oy), body_img)
 
-    # Meta row: time + double blue tick.
-    my = by + body_img.height + 4
-    tick = "✓✓"
-    time_txt = "22:47"
-    draw.text((ox, my), time_txt, font=font_meta, fill=META_COLOR)
-    tw = font_meta.getlength(time_txt)
-    draw.text((ox + tw + 10, my), tick, font=font_meta, fill=TICK_COLOR)
+    # Meta row: time (+ blue double-tick for your own messages).
+    my = oy + body_img.height + 4
+    if outgoing:
+        tick = "✓✓"
+        tw = font_meta.getlength(tick)
+        right = pad + bubble_w - BUBBLE_PAD_X
+        draw.text((right - tw, my), tick, font=font_meta, fill=TICK_COLOR)
+        ttw = font_meta.getlength(time_txt)
+        draw.text((right - tw - 10 - ttw, my), time_txt, font=font_meta,
+                  fill=META_COLOR)
+    else:
+        draw.text((ox, my), time_txt, font=font_meta, fill=META_COLOR)
 
     return card
 

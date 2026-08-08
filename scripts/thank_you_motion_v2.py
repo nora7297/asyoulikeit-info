@@ -54,8 +54,8 @@ TAIL_SEC = 1.0                  # settle time after last message enters
 D_POP = 0.34                    # per-bubble pop-in duration (s)
 D_SCROLL = 0.42                 # feed scroll-settle duration (s)
 
-Y_TARGET = int(H * 0.80)        # where a new bubble's bottom lands
-Y_TOP_MIN = 210                 # keep tall bubbles' tops below the header
+Y_TARGET = 1760                 # newest bubble's bottom sits just above input bar
+Y_TOP_MIN = 200                 # keep tall bubbles' tops below the chat header
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSET_DIR = os.path.join(ROOT, "assets")
@@ -190,65 +190,126 @@ def with_alpha(card: Image.Image, a: float) -> Image.Image:
 # Backgrounds / overlays                                                       #
 # --------------------------------------------------------------------------- #
 
-GRADIENT_BG = None
-BACKDROP = None
-SCRIM = None
-CHROME = None
-EDGE = None
+# WhatsApp-group scene: beige doodle wallpaper, green header bar with the
+# group's details, and a message input bar along the bottom.
+
+WA_HEADER_H = 158
+WA_INPUT_H = 122
+WA_GREEN = (7, 94, 84)               # #075E54 header
+GROUP_NAME = "As You Like It · TML 2026"
+HOST_QUESTION = "How did everyone find Tomorrowland this year?? 🙌💚"
+
+LOGO_PATH = os.path.join(ASSET_DIR, "logo-white.png")
+_font_hdr = ImageFont.truetype(v1.DEJAVU_BOLD, 33)
+_font_sub = ImageFont.truetype(v1.DEJAVU, 23)
+_font_input = ImageFont.truetype(v1.DEJAVU, 30)
+
+WALLPAPER = None
+HEADER = None
+INPUTBAR = None
+
+DOODLES = ["🎵", "❤️", "🎉", "✈️", "☕", "🎈", "🦋", "🌈", "🎧", "⭐", "🍺", "🙌"]
 
 
-def bg_frame(t: float, total: float) -> Image.Image:
-    if BACKDROP is None:
-        return GRADIENT_BG.copy()
-    # Slow Ken Burns: pan diagonally across the oversized backdrop.
-    prog = t / max(1e-6, total)
-    max_dx = BACKDROP.width - W
-    max_dy = BACKDROP.height - H
-    dx = int(max_dx * (0.15 + 0.7 * prog))
-    dy = int(max_dy * (0.10 + 0.5 * prog))
-    frame = BACKDROP.crop((dx, dy, dx + W, dy + H)).copy()
-    frame.paste(SCRIM, (0, 0), SCRIM)
-    return frame
+def make_wallpaper() -> Image.Image:
+    """WhatsApp beige doodle wallpaper (faint tinted emoji stamps)."""
+    base = Image.new("RGBA", (W, H), (231, 223, 213, 255))
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    rng = np.random.default_rng(42)
+    step = 165
+    for gy in range(-1, H // step + 2):
+        for gx in range(-1, W // step + 2):
+            cx = gx * step + (0 if gy % 2 == 0 else step // 2) + int(rng.integers(-18, 18))
+            cy = gy * step + int(rng.integers(-18, 18))
+            glyph = v1.render_emoji(DOODLES[int(rng.integers(0, len(DOODLES)))], 92)
+            if glyph is None:
+                continue
+            a = glyph.getchannel("A").point(lambda p: int(p * 0.09))
+            tint = Image.new("RGBA", glyph.size, (95, 85, 70, 0))
+            tint.putalpha(a)
+            tint = tint.rotate(float(rng.integers(-35, 35)), expand=True,
+                               resample=Image.BICUBIC)
+            layer.alpha_composite(tint, (cx, cy))
+    return Image.alpha_composite(base, layer).convert("RGB")
 
 
-def make_scrim() -> Image.Image:
-    """Dark vertical scrim so bubbles stay legible over a photo."""
-    arr = np.zeros((H, W, 4), dtype=np.uint8)
-    for y in range(H):
-        a = int(180 + 55 * (y / H))          # 180 -> 235 top to bottom
-        arr[y, :, 3] = a
-    scrim = Image.fromarray(arr, "RGBA")
-    tealed = Image.new("RGBA", (W, H), (5, 26, 30, 0))
-    tealed.putalpha(scrim.getchannel("A"))
-    return tealed
+def _fit_circle(img, d, bg):
+    circ = Image.new("RGBA", (d, d), (0, 0, 0, 0))
+    ImageDraw.Draw(circ).ellipse([0, 0, d - 1, d - 1], fill=bg)
+    lw = int(d * 0.72)
+    logo = img.copy()
+    logo.thumbnail((lw, lw), Image.LANCZOS)
+    circ.alpha_composite(logo, ((d - logo.width) // 2, (d - logo.height) // 2))
+    mask = Image.new("L", (d, d), 0)
+    ImageDraw.Draw(mask).ellipse([0, 0, d - 1, d - 1], fill=255)
+    circ.putalpha(mask)
+    return circ
 
 
-# --------------------------------------------------------------------------- #
-# Intro / outro                                                                #
-# --------------------------------------------------------------------------- #
+def make_header() -> Image.Image:
+    h = Image.new("RGBA", (W, WA_HEADER_H), WA_GREEN + (255,))
+    d = ImageDraw.Draw(h)
+    cy = WA_HEADER_H // 2 + 10
+    # Back chevron.
+    d.line([(56, cy - 17), (36, cy), (56, cy + 17)], fill=(255, 255, 255), width=6)
+    # Group avatar (logo on a dark disc).
+    av = 96
+    ax, ay = 80, cy - av // 2
+    try:
+        logo = Image.open(LOGO_PATH).convert("RGBA")
+        h.alpha_composite(_fit_circle(logo, av, (4, 60, 54, 255)), (ax, ay))
+    except Exception:
+        ImageDraw.Draw(h).ellipse([ax, ay, ax + av, ay + av], fill=(4, 60, 54))
+    # Name + member subtitle.
+    tx = ax + av + 22
+    d.text((tx, cy - 36), GROUP_NAME, font=_font_hdr, fill=(255, 255, 255))
+    names = [n for n, _ in v1.MESSAGES]
+    sub = "You, " + ", ".join(names[:5]) + f", +{max(0, len(names) - 5)}"
+    d.text((tx, cy + 6), sub, font=_font_sub, fill=(200, 230, 224))
+    # Right icons: video camera + overflow menu.
+    vx, vy = W - 150, cy
+    d.rounded_rectangle([vx, vy - 15, vx + 42, vy + 15], radius=8,
+                        outline=(255, 255, 255), width=5)
+    d.polygon([(vx + 46, vy - 12), (vx + 64, vy - 2), (vx + 64, vy + 2),
+               (vx + 46, vy + 12)], fill=(255, 255, 255))
+    for k in range(3):                                    # overflow dots
+        d.ellipse([W - 44, cy - 26 + k * 22, W - 34, cy - 16 + k * 22],
+                  fill=(255, 255, 255))
+    return h
 
-def draw_intro(base: Image.Image, p: float) -> Image.Image:
-    frame = base.copy()
-    title = v1.make_title_card()
-    e = ease_out_back(min(1.0, p / 0.6))
-    a = min(1.0, p / 0.4)
-    card = with_alpha(scaled(title, 0.8 + 0.2 * e), a)
-    x = (W - card.width) // 2
-    y = (H - card.height) // 2 - 40 + int((1 - ease_out_cubic(min(1, p / 0.6))) * 40)
-    frame.paste(card, (x, y), card)
-    return frame
+
+def make_inputbar() -> Image.Image:
+    b = Image.new("RGBA", (W, WA_INPUT_H), (236, 229, 221, 255))
+    d = ImageDraw.Draw(b)
+    cy = WA_INPUT_H // 2
+    d.rounded_rectangle([24, 18, W - 140, WA_INPUT_H - 18], radius=(WA_INPUT_H - 36) // 2,
+                        fill=(255, 255, 255))
+    smiley = v1.render_emoji("🙂", 44)
+    if smiley is not None:
+        b.alpha_composite(smiley, (48, cy - 22))
+    d.text((110, cy - 18), "Message", font=_font_input, fill=(150, 150, 150))
+    # Green mic button.
+    bx = W - 74
+    d.ellipse([bx - 44, cy - 44, bx + 44, cy + 44], fill=WA_GREEN)
+    d.rounded_rectangle([bx - 9, cy - 24, bx + 9, cy + 6], radius=9, fill=(255, 255, 255))
+    d.arc([bx - 18, cy - 12, bx + 18, cy + 20], 20, 160, fill=(255, 255, 255), width=4)
+    d.line([(bx, cy + 20), (bx, cy + 30)], fill=(255, 255, 255), width=4)
+    d.line([(bx - 12, cy + 30), (bx + 12, cy + 30)], fill=(255, 255, 255), width=4)
+    return b
 
 
-def draw_outro(base: Image.Image, p: float) -> Image.Image:
-    frame = base.copy()
-    outro = v1.make_outro_card()
-    e = ease_out_back(min(1.0, p / 0.6))
-    a = min(1.0, p / 0.4)
-    card = with_alpha(scaled(outro, 0.82 + 0.18 * e), a)
-    x = (W - card.width) // 2
-    y = (H - card.height) // 2 - 20
-    frame.paste(card, (x, y), card)
-    return frame
+def draw_outro(t, chat_end) -> Image.Image:
+    """Fade the chat to brand teal and pop the sign-off card."""
+    p = (t - chat_end) / OUTRO_SEC
+    frame = WALLPAPER.convert("RGBA").copy()
+    frame.alpha_composite(Image.new("RGBA", (W, H),
+                                    WA_GREEN + (int(min(1.0, p / 0.35) * 255),)))
+    if p > 0.12:
+        e = ease_out_back(min(1.0, (p - 0.12) / 0.5))
+        a = min(1.0, (p - 0.12) / 0.4)
+        card = with_alpha(scaled(v1.make_outro_card(), 0.85 + 0.15 * e), a)
+        frame.alpha_composite(card, ((W - card.width) // 2, (H - card.height) // 2 - 20))
+    return frame.convert("RGB")
 
 
 # --------------------------------------------------------------------------- #
@@ -256,20 +317,27 @@ def draw_outro(base: Image.Image, p: float) -> Image.Image:
 # --------------------------------------------------------------------------- #
 
 def render(messages, out_mp4, out_poster):
-    global GRADIENT_BG, BACKDROP, SCRIM, CHROME, EDGE
-    if GRADIENT_BG is None:
-        GRADIENT_BG = v1.make_background().convert("RGB")
-        BACKDROP = find_backdrop()
-        SCRIM = make_scrim() if BACKDROP is not None else None
-        CHROME = v1.make_chrome()
-        EDGE = v1.make_edge_mask()
+    global WALLPAPER, HEADER, INPUTBAR
+    if WALLPAPER is None:
+        WALLPAPER = make_wallpaper()
+        HEADER = make_header()
+        INPUTBAR = make_inputbar()
 
-    cards, total_beats = build_cards(messages)
     gap = v1.BUBBLE_GAP
-    x_left = v1.SIDE_MARGIN - 18
+    pad = 18
 
-    # Absolute stacked positions of each bubble on a virtual strip.
-    tops, bottoms = [], []
+    # Cards: your outgoing question first, then the incoming replies.
+    cards = [{"img": v1.make_bubble("You", HOST_QUESTION, None, outgoing=True),
+              "out": True, "text": HOST_QUESTION}]
+    for i, (name, text) in enumerate(messages):
+        cards.append({"img": v1.make_bubble(name, text, v1.ACCENTS[i % len(v1.ACCENTS)]),
+                      "out": False, "text": text})
+
+    for c in cards:                                   # horizontal placement
+        w = c["img"].width
+        c["x"] = (W - v1.SIDE_MARGIN + pad - w) if c["out"] else (v1.SIDE_MARGIN - pad)
+
+    tops, bottoms = [], []                            # stacked positions
     y = 0
     for c in cards:
         tops.append(y)
@@ -277,36 +345,40 @@ def render(messages, out_mp4, out_poster):
         bottoms.append(y)
         y += gap
 
-    # Scroll value once bubble i has settled: its bottom sits at Y_TARGET,
-    # but a tall bubble instead pins its top to Y_TOP_MIN so it stays visible.
+    # Anchor the newest bubble's bottom near the input bar (chat fills from the
+    # bottom). Scroll may be negative when there are only a few messages. A
+    # bubble too tall to fit pins its top under the header instead.
     scroll_at = []
     for i, c in enumerate(cards):
         s = bottoms[i] - Y_TARGET
         if tops[i] - s < Y_TOP_MIN:
             s = tops[i] - Y_TOP_MIN
-        scroll_at.append(max(0, s))
+        scroll_at.append(s)
 
-    # Timeline (seconds).
-    t0 = INTRO_SEC
-    entry_time = [t0 + c["entry_beat"] * BEAT for c in cards]
-    chat_end = entry_time[-1] + cards[-1]["hold"] * BEAT + TAIL_SEC
+    # Timeline: question during the intro build; replies from the drop, on beat.
+    holds = [1 if len(c["text"]) < 45 else (2 if len(c["text"]) < 135 else 3)
+             for c in cards[1:]]
+    entry_time = [2 * BEAT]
+    tcur = INTRO_SEC
+    for h in holds:
+        entry_time.append(tcur)
+        tcur += h * BEAT
+    chat_end = (entry_time[-1] + holds[-1] * BEAT + TAIL_SEC) if holds \
+        else INTRO_SEC + TAIL_SEC
     total = chat_end + OUTRO_SEC
     total_frames = int(total * FPS)
 
-    print(f"BPM {BPM} | {len(cards)} messages over {total_beats} beats "
-          f"| backdrop={'yes' if BACKDROP else 'no'} "
-          f"| avatars={'some' if os.path.isdir(AVATAR_DIR) else 'none'}")
-    print(f"Duration ~{total:.1f}s ({total_frames} frames)")
+    print(f"BPM {BPM} | {len(messages)} replies | WhatsApp theme "
+          f"| duration ~{total:.1f}s ({total_frames} frames)")
 
     def scroll(t: float) -> float:
-        # Before the first entry, hold so bubble 0 slides up from below.
+        first_drop = scroll_at[0] - (cards[0]["img"].height + gap)
         if t <= entry_time[0]:
-            return scroll_at[0] - (cards[0]["img"].height + gap)
+            return first_drop
         s = scroll_at[0]
         for i in range(len(cards)):
             if t >= entry_time[i]:
-                prev = scroll_at[i - 1] if i > 0 else \
-                    scroll_at[0] - (cards[0]["img"].height + gap)
+                prev = scroll_at[i - 1] if i > 0 else first_drop
                 p = ease_out_cubic((t - entry_time[i]) / D_SCROLL)
                 s = prev + (scroll_at[i] - prev) * p
             else:
@@ -314,43 +386,35 @@ def render(messages, out_mp4, out_poster):
         return s
 
     def compose(t: float) -> Image.Image:
-        # Intro / outro phases.
-        if t < INTRO_SEC:
-            return draw_intro(bg_frame(0, total), t / INTRO_SEC).convert("RGB")
         if t >= chat_end:
-            return draw_outro(bg_frame(t, total),
-                              (t - chat_end) / OUTRO_SEC).convert("RGB")
+            return draw_outro(t, chat_end)
 
-        frame = bg_frame(t, total)
+        frame = WALLPAPER.convert("RGBA")
         sc = scroll(t)
-        # Composite the strip region with soft top/bottom edge fades.
-        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         n_entered = sum(1 for et in entry_time if t >= et)
         for i in range(n_entered):
             base_y = int(tops[i] - sc)
-            if base_y > H or base_y + cards[i]["img"].height < 0:
-                continue
             img = cards[i]["img"]
-            # Pop only the most-recent entrant.
-            if i == n_entered - 1:
+            x = cards[i]["x"]
+            if base_y > H or base_y + img.height < 0:
+                continue
+            if i == n_entered - 1:                    # pop the newest entrant
                 pp = (t - entry_time[i]) / D_POP
                 if pp < 1.0:
                     s = 0.82 + 0.18 * ease_out_back(pp)
-                    img = with_alpha(scaled(img, s), min(1.0, pp * 1.6))
-                    dx = (img.width - cards[i]["img"].width) // 2
-                    dy = (img.height - cards[i]["img"].height) // 2
-                    layer.paste(img, (x_left - dx, base_y - dy), img)
+                    im = with_alpha(scaled(img, s), min(1.0, pp * 1.6))
+                    dx = (im.width - img.width) // 2
+                    dy = (im.height - img.height) // 2
+                    frame.alpha_composite(im, (x - dx, base_y - dy))
                     continue
-            layer.paste(img, (x_left, base_y), img)
+            frame.alpha_composite(img, (x, base_y))
 
-        alpha = ImageChops.multiply(layer.getchannel("A"), EDGE)
-        layer.putalpha(alpha)
-        frame.paste(layer, (0, 0), layer)
-        frame.paste(CHROME, (0, 0), CHROME)
+        frame.alpha_composite(HEADER, (0, 0))
+        frame.alpha_composite(INPUTBAR, (0, H - WA_INPUT_H))
         return frame.convert("RGB")
 
     # Poster: a lively mid-chat frame.
-    compose(entry_time[min(3, len(cards) - 1)] + 0.2).save(out_poster)
+    compose(entry_time[min(4, len(cards) - 1)] + 0.25).save(out_poster)
     print(f"Saved poster -> {out_poster}")
 
     tmp_mp4 = out_mp4 if find_audio() is None else out_mp4.replace(".mp4", ".silent.mp4")
