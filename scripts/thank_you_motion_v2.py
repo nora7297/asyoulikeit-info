@@ -278,7 +278,9 @@ def make_header() -> Image.Image:
     return h
 
 
-def make_inputbar() -> Image.Image:
+def make_inputbar(content=None, cursor=False) -> Image.Image:
+    """Bottom input bar. content=None shows the 'Message' placeholder + mic;
+    an RGBA `content` image (typed text) shows it in the field + a send button."""
     b = Image.new("RGBA", (W, WA_INPUT_H), (236, 229, 221, 255))
     d = ImageDraw.Draw(b)
     cy = WA_INPUT_H // 2
@@ -287,15 +289,58 @@ def make_inputbar() -> Image.Image:
     smiley = v1.render_emoji("🙂", 44)
     if smiley is not None:
         b.alpha_composite(smiley, (48, cy - 22))
-    d.text((110, cy - 18), "Message", font=_font_input, fill=(150, 150, 150))
-    # Green mic button.
+
+    fx0, fx1 = 110, W - 156
+    if content is None:
+        d.text((fx0, cy - 18), "Message", font=_font_input, fill=(150, 150, 150))
+        curx = fx0
+    else:
+        oy = cy - content.height // 2
+        fw = fx1 - fx0
+        if content.width <= fw:
+            b.alpha_composite(content, (fx0, oy))
+            curx = fx0 + content.width + 4
+        else:                                   # show the tail, like a real field
+            b.alpha_composite(content.crop((content.width - fw, 0,
+                                            content.width, content.height)), (fx0, oy))
+            curx = fx0 + fw + 4
+    if cursor:
+        d.line([(curx, cy - 22), (curx, cy + 22)], fill=(90, 90, 90), width=3)
+
+    # Button: send arrow while composing, otherwise mic.
     bx = W - 74
     d.ellipse([bx - 44, cy - 44, bx + 44, cy + 44], fill=WA_GREEN)
-    d.rounded_rectangle([bx - 9, cy - 24, bx + 9, cy + 6], radius=9, fill=(255, 255, 255))
-    d.arc([bx - 18, cy - 12, bx + 18, cy + 20], 20, 160, fill=(255, 255, 255), width=4)
-    d.line([(bx, cy + 20), (bx, cy + 30)], fill=(255, 255, 255), width=4)
-    d.line([(bx - 12, cy + 30), (bx + 12, cy + 30)], fill=(255, 255, 255), width=4)
+    if content is not None:                     # paper-plane send glyph
+        d.polygon([(bx - 20, cy - 16), (bx + 22, cy), (bx - 20, cy + 16),
+                   (bx - 12, cy), ], fill=(255, 255, 255))
+        d.polygon([(bx - 20, cy + 16), (bx - 12, cy), (bx + 4, cy)],
+                  fill=(210, 240, 225))
+    else:                                       # mic glyph
+        d.rounded_rectangle([bx - 9, cy - 24, bx + 9, cy + 6], radius=9, fill=(255, 255, 255))
+        d.arc([bx - 18, cy - 12, bx + 18, cy + 20], 20, 160, fill=(255, 255, 255), width=4)
+        d.line([(bx, cy + 20), (bx, cy + 30)], fill=(255, 255, 255), width=4)
+        d.line([(bx - 12, cy + 30), (bx + 12, cy + 30)], fill=(255, 255, 255), width=4)
     return b
+
+
+def type_units(text):
+    """Cumulative reveal states for a typewriter effect (whole emoji at once)."""
+    units, cur = [], ""
+    for tok in v1._tokenize(text):
+        if tok[0] == "word":
+            for ch in tok[1]:
+                cur += ch
+                units.append(cur)
+        elif tok[0] == "space":
+            cur += " "
+            units.append(cur)
+        elif tok[0] == "break":
+            cur += "\n"
+            units.append(cur)
+        elif tok[0] == "emoji":
+            cur += tok[1]
+            units.append(cur)
+    return units
 
 
 def draw_outro(t, chat_end) -> Image.Image:
@@ -355,10 +400,15 @@ def render(messages, out_mp4, out_poster):
             s = tops[i] - Y_TOP_MIN
         scroll_at.append(s)
 
-    # Timeline: question during the intro build; replies from the drop, on beat.
+    # Your question types out live in the input bar during the intro, then
+    # "sends" (the bubble pops). Replies start from the drop, on the beat.
+    q_units = type_units(HOST_QUESTION)
+    TYPE_START, TYPE_CPS, PAUSE = 0.5, 21.0, 0.3
+    send_time = min(INTRO_SEC - 0.35, TYPE_START + len(q_units) / TYPE_CPS + PAUSE)
+
     holds = [1 if len(c["text"]) < 45 else (2 if len(c["text"]) < 135 else 3)
              for c in cards[1:]]
-    entry_time = [2 * BEAT]
+    entry_time = [send_time]
     tcur = INTRO_SEC
     for h in holds:
         entry_time.append(tcur)
@@ -410,7 +460,20 @@ def render(messages, out_mp4, out_poster):
             frame.alpha_composite(img, (x, base_y))
 
         frame.alpha_composite(HEADER, (0, 0))
-        frame.alpha_composite(INPUTBAR, (0, H - WA_INPUT_H))
+        # Input bar: type the question out, then revert to the placeholder.
+        if TYPE_START <= t < send_time:
+            idx = max(0, min(len(q_units), int((t - TYPE_START) * TYPE_CPS)))
+            typed = q_units[idx - 1] if idx > 0 else ""
+            cimg = None
+            if typed:
+                cimg = v1.layout_rich(typed, _font_input, 4000, (70, 70, 70), 34, 40)
+                bb = cimg.getbbox()                    # trim the wide empty canvas
+                if bb:
+                    cimg = cimg.crop((0, 0, bb[2] + 2, cimg.height))
+            bar = make_inputbar(cimg, cursor=(int(t * 2) % 2 == 0))
+        else:
+            bar = INPUTBAR
+        frame.alpha_composite(bar, (0, H - WA_INPUT_H))
         return frame.convert("RGB")
 
     # Poster: a lively mid-chat frame.
