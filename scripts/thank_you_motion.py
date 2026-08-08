@@ -34,27 +34,39 @@ from PIL import Image, ImageChops, ImageDraw, ImageFont
 # Data                                                                        #
 # --------------------------------------------------------------------------- #
 
+# First names only; group participants not saved as contacts (the "~" names in
+# WhatsApp) — saved contacts and phone numbers are intentionally left out.
 MESSAGES = [
-    ("~Al C", "Thanks all for a great time. An experience ill never forget 🙌🏿"),
-    ("~Emma", "Thanks Chris and Ben, you were wonderful hosts!\nGreat to meet everyone, Safe travels ✈️"),
-    ("~Declan McMullan", "Thank you Chris and Ben for an unforgettable weekend, same time next week then 🤣 it was a pleasure meeting everyone and sharing a drink, hope youse all have safe travels home 🍺"),
-    ("~Char", "Thanks for an amazing weekend everyone hope the journey home isn’t to rough was so nice to meet everyone safe trip home ❤️🌈"),
-    ("~Stephen Purdue", "Thanks for the trip folks, was fantastic 🎉"),
-    ("~Craig", "Massive thanks to Chris and Ben for being awesome hosts again and it was great meeting everyone 🎵🎉 Countdowns back on only 360 days to go 😂"),
-    ("Dean Tomorrowland", "Thanks Ben and Chris see you next year not long to go 🙌"),
-    ("~Kris", "Thanks for a great weekend everyone !! Thanks Chris and Ben for the opportunity and experience was amazing hopefully can come along again next year 💙💜💖🎵"),
-    ("~Kyle", "Thanks for a great weekend folks. hopefully see use again next year"),
-    ("~Lindsey", "Thank you so much Chris and Ben! Firstly for giving us the opportunity to be there and secondly for being fantastic hosts! Glad we never got tickets through the sales now and got to share it with so many incredible people! .. sad it's all over 🫶🏼🏴󠁧󠁢󠁣󠁴󠁿 XXX"),
-    ("Craig Bain", "Thanks Ben, legend"),
-    ("~Chris Adam", "Thanks for a class weekend everyone! Chris and Ben, yous smashed the hosting! 🥂🫶"),
-    ("~Hannah", "Brilliant few days - thank you so much Chris and Ben for looking after us ❤️"),
-    ("~Liam Murray", "Had an amazing time! Thanks Chris and Ben for the excellent hosting. Looking forward to next year 👀"),
-    ("~Jen", "Thanks Chris & Ben another amazing year 🙌🙌"),
-    ("~Steph", "Thanks so much Chris & Ben for an unforgettable weekend 🦋 sharing a great experience with the most awesome people. Rest up everyone, safe travels..."),
-    ("~Pamela", "Thank you so much guys!!!! Incredible experience 🫶🏼 our first time in TML and it was incredibly perfect from minute one! beautiful gifts from the hosts ❤️❤️"),
-    ("~Andrea", "Thankyou ben and chris for the best experience enjoyed every second of it, and really enjoyed meeting everyone, safe home everyone ❤️"),
-    ("~Oli", "Nice one for such a mad weekend, appreciate you boys! 💙 And it was great meeting everyone in this group finally! Get home safe everyone..."),
-    ("James TML25-W1", "Thanks so much Ben and Chris for looking after us again this year ! Another amazing experience with you guys. Roll on next year 💪💪"),
+    ("Al", "Thanks all for a great time. An experience ill never forget 🙌🏿"),
+    ("Emma", "Thanks Chris and Ben, you were wonderful hosts!\nGreat to meet everyone, safe travels ✈️"),
+    ("Declan", "Thank you Chris and Ben for an unforgettable weekend, same time next week then 🤣 it was a pleasure meeting everyone and sharing a drink, hope youse all have safe travels home 🍺"),
+    ("Char", "Thanks for an amazing weekend everyone hope the journey home isn’t to rough was so nice to meet everyone safe trip home ❤️🌈"),
+    ("Stephen", "I’ve made it home folks. Thanks for such a fab weekend, and thanks to Chris and Ben for organising a great trip 🎉🔥"),
+    ("Craig", "Massive thanks to Chris and Ben for being awesome hosts again and it was great meeting everyone 🎵🎉 Countdowns back on only 360 days to go 😂"),
+    ("Kris", "Thanks for a great weekend everyone !! Thanks Chris and Ben for the opportunity and experience was amazing hopefully can come along again next year 💙💜💖🎵"),
+    ("Kyle", "Thanks for a great weekend folks. hopefully see use again next year"),
+    ("Lindsey", "Thank you so much Chris and Ben! Firstly for giving us the opportunity to be there and secondly for being fantastic hosts! Glad we never got tickets through the sales now and got to share it with so many incredible people! .. sad it's all over 🫶🏼🏴󠁧󠁢󠁣󠁴󠁿 XXX"),
+    ("Chris", "Thanks for a class weekend everyone! Chris and Ben, yous smashed the hosting! 🥂🫶"),
+    ("Hannah", "Brilliant few days - thank you so much Chris and Ben for looking after us ❤️"),
+    ("Liam", "Had an amazing time! Thanks Chris and Ben for the excellent hosting. Looking forward to next year 👀"),
+    ("Jen", "Thanks Chris & Ben another amazing year 🙌🙌"),
+    ("Pamela", "Thank you so much guys!!!! Incredible experience 🫶🏼 our first time in TML and it was incredibly perfect from minute one! beautiful gifts from the hosts ❤️❤️ hope you all get home safe!! X"),
+    ("Steph", "Thanks so much Chris & Ben for an unforgettable weekend 🦋 sharing a great experience with the most awesome people. Rest up everyone, safe travels and lucky buggers being home already 😩🙏🏻 it’s been a pleasure everyone thank you xxxx"),
+    ("Andrea", "Thankyou ben and chris for the best experience enjoyed every second of it, and really enjoyed meeting everyone, safe home everyone ❤️"),
+    ("Oli", "Nice one for such a mad weekend, appreciate you boys! 💙 And it was great meeting everyone in this group finally! Get home safe everyone and hopefully we’ll have a reunion this time next year 😉 Peace! ✌️"),
+    ("Grant", "Safe travels to everyone! I’m in Brussels rn tysm for everything I had such a lovely weekend you guys were all great! 🫶🏼"),
+    ("Kayla", "Thank you all so much ❤️"),
+    ("Fiona", "Thanks everyone for a phenomenal weekend, what an amazing group we had this year it really does make all the difference, hope to see lots of your faces again next year! ❤️🦋"),
+    ("Jessica", "Thank you Ben and Chris for another amazing weekend at Tomorrowland and for taking care of us ❤️❤️ See you soon and I hope everyone is recovering nicely, see you again soon 🍻"),
+    ("Gary", "Thanks As You Like It for another awesome weekend. Finally home and showered after a long day of travel. 360 days to go until TML 2027 🙌🥰"),
+    ("Marly", "Just got home - Thankyou so so much 💙🤍"),
+    ("Michael", "Best time 🫶🦋"),
+    ("Soph", "We have just started our 7 hour drive back to Scotland from England 🤢 thanks so much for the best weekend! Hope to see yous all next year xx"),
+    ("Shannon", "Still not home 😂 thanks for the best weekend and see yous again next year 🫶🏻"),
+    ("Cathy", "Finally home - thanks everyone for a fantastic weekend! See you next year! ❤️🤗"),
+    ("’arry", "Thanks everyone for an amazing weekend! 🙌 As You Like It Festivals smashed it 👏"),
+    ("Anu", "We’ve just landed in Stockholm. Thank you for an amazing weekend! We really had the best time. A special thank you to Chris and Pete for everything — you made it even more memorable. I hope we get to see each other again next year at Tomorrowland! ❤️"),
+    ("Alannah", "We’ve just landed at Heathrow! Thanks for such a great first Tomorrowland - we loved every second! 💃🎶 Thanks Chris and Pete for all your help and organisation! xx"),
 ]
 
 # --------------------------------------------------------------------------- #
@@ -67,7 +79,7 @@ FPS = 30
 # Motion timing (seconds)
 HOLD_START = 2.0            # dwell on the title before the roll begins
 HOLD_END = 2.6             # dwell on the outro card at the end
-SCROLL_PXPS = 155          # scroll speed in pixels / second
+SCROLL_PXPS = 225          # scroll speed in pixels / second
 
 # Layout
 SIDE_MARGIN = 60
@@ -354,7 +366,7 @@ def make_title_card() -> Image.Image:
     _center_text(draw, cx, 120, "AS YOU LIKE IT", font_kicker, (208, 175, 94))
     _center_text(draw, cx, 190, "Thank", font_title, (255, 255, 255))
     _center_text(draw, cx, 288, "You", font_title, (255, 255, 255))
-    _center_text(draw, cx, 430, "Tomorrowland 2025 · from the crew", font_sub, (206, 232, 226))
+    _center_text(draw, cx, 430, "Tomorrowland 2026 · from the crew", font_sub, (206, 232, 226))
 
     heart = render_emoji("💚", 88)
     if heart:
@@ -426,12 +438,12 @@ def make_chrome() -> Image.Image:
     draw = ImageDraw.Draw(chrome)
     _center_text(draw, W // 2, 40, "AS YOU LIKE IT · THANK YOU", font_kicker,
                  (255, 255, 255, 235))
-    footer = "Tomorrowland 2025 · from all of us 💚"
+    footer = "Tomorrowland 2026 · from all of us 💚"
     # emoji in footer
-    fw = draw.textlength("Tomorrowland 2025 · from all of us ", font=font_meta)
+    fw = draw.textlength("Tomorrowland 2026 · from all of us ", font=font_meta)
     total = fw + 26
     fx = (W - total) / 2
-    draw.text((fx, H - 52), "Tomorrowland 2025 · from all of us ", font=font_meta,
+    draw.text((fx, H - 52), "Tomorrowland 2026 · from all of us ", font=font_meta,
               fill=(210, 232, 226, 220))
     heart = render_emoji("💚", 24)
     if heart:
