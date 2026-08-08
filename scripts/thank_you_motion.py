@@ -46,7 +46,7 @@ MESSAGES = [
     ("Kris", "Thanks for a great weekend everyone !! Thanks Chris and Ben for the opportunity and experience was amazing hopefully can come along again next year 💙💜💖🎵"),
     ("Kyle", "Thanks for a great weekend folks. hopefully see use again next year"),
     ("Lindsey", "Thank you so much Chris and Ben! Firstly for giving us the opportunity to be there and secondly for being fantastic hosts! Glad we never got tickets through the sales now and got to share it with so many incredible people! .. sad it's all over 🫶🏼🏴󠁧󠁢󠁣󠁴󠁿 XXX"),
-    ("Chris", "Thanks for a class weekend everyone! Chris and Ben, yous smashed the hosting! 🥂🫶"),
+    ("Chris A", "Thanks for a class weekend everyone! Chris and Ben, yous smashed the hosting! 🥂🫶"),
     ("Hannah", "Brilliant few days - thank you so much Chris and Ben for looking after us ❤️"),
     ("Liam", "Had an amazing time! Thanks Chris and Ben for the excellent hosting. Looking forward to next year 👀"),
     ("Jen", "Thanks Chris & Ben another amazing year 🙌🙌"),

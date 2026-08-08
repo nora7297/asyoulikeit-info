@@ -46,10 +46,10 @@ import thank_you_motion as v1  # shared bubbles / emoji / fonts / data
 
 W, H, FPS = v1.W, v1.H, v1.FPS
 
-BPM = 112                       # tempo the entrances snap to
-INTRO_SEC = 2.0                 # animated title hold
-OUTRO_SEC = 3.0                 # animated outro hold
-TAIL_SEC = 0.8                  # settle time after last message enters
+BPM = 124                       # tempo the entrances snap to (matches the track)
+INTRO_BEATS = 8                 # 2-bar intro so the first bubble hits the drop
+OUTRO_SEC = 3.4                 # animated outro hold
+TAIL_SEC = 1.0                  # settle time after last message enters
 
 D_POP = 0.34                    # per-bubble pop-in duration (s)
 D_SCROLL = 0.42                 # feed scroll-settle duration (s)
@@ -67,6 +67,7 @@ OUT_MP4 = os.path.join(ASSET_DIR, "thank-you-motion-v2.mp4")
 OUT_POSTER = os.path.join(ASSET_DIR, "thank-you-motion-v2-poster.png")
 
 BEAT = 60.0 / BPM
+INTRO_SEC = INTRO_BEATS * BEAT   # keep the title hold an exact number of beats
 
 # --------------------------------------------------------------------------- #
 # Easing                                                                       #
