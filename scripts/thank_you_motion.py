@@ -370,7 +370,7 @@ def make_title_card() -> Image.Image:
     _center_text(draw, cx, 120, "AS YOU LIKE IT", font_kicker, (208, 175, 94))
     _center_text(draw, cx, 190, "Thank", font_title, (255, 255, 255))
     _center_text(draw, cx, 288, "You", font_title, (255, 255, 255))
-    _center_text(draw, cx, 430, "Tomorrowland 2026 · from the crew", font_sub, (206, 232, 226))
+    _center_text(draw, cx, 430, "Tomorrowland 2026", font_sub, (206, 232, 226))
 
     heart = render_emoji("💚", 88)
     if heart:
