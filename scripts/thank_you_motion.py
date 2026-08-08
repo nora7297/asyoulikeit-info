@@ -384,8 +384,8 @@ def make_outro_card() -> Image.Image:
     cx = W // 2
     hearts = layout_rich("💙💜💚", font_body, 400, BODY_COLOR, 96, 110)
     card.paste(hearts, (cx - hearts.width // 2, 90), hearts)
-    _center_text(draw, cx, 250, "See you next year", font_title, (255, 255, 255))
-    _center_text(draw, cx, 400, "Chris & Ben", font_sub, (206, 232, 226))
+    _center_text(draw, cx, 250, "Unite Forever", font_title, (255, 255, 255))
+    _center_text(draw, cx, 400, "from the As You Like It Team", font_sub, (206, 232, 226))
     _center_text(draw, cx, 452, "asyoulikeit-info", font_meta, (150, 190, 182))
     return card
 
