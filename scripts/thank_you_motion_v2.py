@@ -30,6 +30,7 @@ Run:
 from __future__ import annotations
 
 import glob
+import math
 import os
 import subprocess
 
@@ -38,6 +39,7 @@ import imageio_ffmpeg
 import numpy as np
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
+import sfx                      # synthesized ding / whoosh sound effects
 import thank_you_motion as v1  # shared bubbles / emoji / fonts / data
 
 # --------------------------------------------------------------------------- #
@@ -343,6 +345,102 @@ def type_units(text):
     return units
 
 
+# Real reactions from the group chat: (unique text substring, emoji, count).
+# Count is only shown when > 1 (WhatsApp convention). Order doesn't matter.
+REACTIONS = [
+    ("great time. An experience", "❤️", 1),
+    ("you were wonderful hosts", "❤️", 1),
+    ("same time next week then", "❤️", 1),
+    ("hope the journey home", "❤️", 4),
+    ("made it home folks", "❤️", 4),
+    ("being awesome hosts again", "❤️", 5),
+    ("Thanks for a great weekend everyone !!", "❤️", 3),
+    ("hopefully see use again", "❤️", 3),
+    ("Firstly for giving us the opportunity", "❤️", 4),
+    ("yous smashed the hosting", "❤️", 2),
+    ("Brilliant few days", "❤️", 2),
+    ("excellent hosting. Looking forward", "❤️", 2),
+    ("another amazing year", "❤️", 1),
+    ("Incredible experience", "❤️", 2),
+    ("lucky buggers being home", "❤️", 4),
+    ("enjoyed every second of it", "❤️", 1),
+    ("appreciate you boys", "🫶❤️", 4),
+    ("phenomenal weekend", "❤️", 5),
+    ("taking care of us", "❤️", 2),
+    ("360 days to go until TML 2027", "❤️👍", 9),
+    ("Just got home", "❤️", 3),
+    ("Best time", "❤️", 2),
+    ("7 hour drive", "❤️", 2),
+    ("Still not home", "❤️", 3),
+    ("Finally home - thanks everyone", "❤️", 2),
+    ("smashed it", "❤️", 1),
+    ("landed in Stockholm", "👍", 1),
+    ("landed at Heathrow", "❤️", 2),
+    ("ran extremely smoothly", "❤️", 3),
+    ("good to see some of you regulars", "❤️🔥", 5),
+]
+
+
+def reaction_for(text):
+    for sub, emojis, count in REACTIONS:
+        if sub in text:
+            return emojis, count
+    return None
+
+
+def make_reaction_pill(emojis, count) -> Image.Image:
+    ehs = 34
+    glyphs = []
+    for ch in [c for c in emojis]:
+        g = v1.render_emoji(ch, ehs)
+        if g is not None:
+            glyphs.append(g)
+    cnt_txt = str(count) if count > 1 else ""
+    padx, h = 14, 54
+    w = padx * 2 + sum(g.width for g in glyphs) + (2 * len(glyphs))
+    if cnt_txt:
+        w += 6 + int(v1.font_meta.getlength(cnt_txt))
+    pill = Image.new("RGBA", (w + 8, h + 8), (0, 0, 0, 0))
+    sh = Image.new("RGBA", pill.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle([4, 6, w + 4, h + 4], radius=h // 2,
+                                         fill=(0, 0, 0, 55))
+    pill.alpha_composite(sh.filter(ImageFilter.GaussianBlur(4)))
+    d = ImageDraw.Draw(pill)
+    d.rounded_rectangle([4, 4, w + 4, h + 4], radius=h // 2, fill=(255, 255, 255),
+                        outline=(230, 230, 230), width=1)
+    cx = 4 + padx
+    for g in glyphs:
+        pill.alpha_composite(g, (cx, 4 + (h - g.height) // 2))
+        cx += g.width + 2
+    if cnt_txt:
+        d.text((cx + 4, 4 + (h - 26) // 2), cnt_txt, font=v1.font_meta,
+               fill=(110, 118, 120))
+    return pill
+
+
+def make_typing_bubble(phase: float) -> Image.Image:
+    """Small incoming bubble with three animated dots."""
+    pad, bw, bh, r = 18, 150, 92, 26
+    card = Image.new("RGBA", (bw + pad * 2, bh + pad * 2), (0, 0, 0, 0))
+    sh = Image.new("RGBA", card.size, (0, 0, 0, 0))
+    ImageDraw.Draw(sh).rounded_rectangle([pad, pad + 6, pad + bw, pad + bh + 6],
+                                         radius=r, fill=(0, 0, 0, 55))
+    card.alpha_composite(sh.filter(ImageFilter.GaussianBlur(9)))
+    d = ImageDraw.Draw(card)
+    d.rounded_rectangle([pad, pad, pad + bw, pad + bh], radius=r, fill=(255, 255, 255))
+    d.polygon([(pad, pad + 20), (pad - 14, pad + 6), (pad + 6, pad + 6)],
+              fill=(255, 255, 255))
+    cy = pad + bh // 2
+    for k in range(3):
+        ph = (phase + k / 3.0) % 1.0
+        rise = int(6 * math.sin(ph * math.pi))
+        shade = int(150 + 80 * math.sin(ph * math.pi))
+        cx = pad + 40 + k * 36
+        d.ellipse([cx - 11, cy - 11 - rise, cx + 11, cy + 11 - rise],
+                  fill=(shade, shade, shade))
+    return card
+
+
 def draw_outro(t, chat_end) -> Image.Image:
     """Fade the chat to brand teal and pop the sign-off card."""
     p = (t - chat_end) / OUTRO_SEC
@@ -404,17 +502,30 @@ def render(messages, out_mp4, out_poster):
     # "sends" (the bubble pops). Replies start from the drop, on the beat.
     q_units = type_units(HOST_QUESTION)
     TYPE_START, TYPE_CPS, PAUSE = 0.5, 21.0, 0.3
+    TLEAD, REACT_DELAY = 0.5, 0.55
     send_time = min(INTRO_SEC - 0.35, TYPE_START + len(q_units) / TYPE_CPS + PAUSE)
 
     holds = [1 if len(c["text"]) < 45 else (2 if len(c["text"]) < 135 else 3)
              for c in cards[1:]]
-    entry_time = [send_time]
+    entry_time = [send_time]                           # slot activation times
     tcur = INTRO_SEC
     for h in holds:
         entry_time.append(tcur)
         tcur += h * BEAT
-    chat_end = (entry_time[-1] + holds[-1] * BEAT + TAIL_SEC) if holds \
-        else INTRO_SEC + TAIL_SEC
+
+    # Per-card typing lead, message-pop time and reaction pill.
+    for i, c in enumerate(cards):
+        if i == 0:
+            c["typing"] = False
+            c["msg_time"] = entry_time[0]
+        else:
+            c["typing"] = holds[i - 1] >= 2           # only longer replies "type"
+            c["msg_time"] = entry_time[i] + (TLEAD if c["typing"] else 0.0)
+        rc = None if c["out"] else reaction_for(c["text"])
+        c["react_img"] = make_reaction_pill(*rc) if rc else None
+
+    ding_times = [c["msg_time"] for c in cards[1:]]
+    chat_end = cards[-1]["msg_time"] + max(TAIL_SEC, REACT_DELAY + 0.9)
     total = chat_end + OUTRO_SEC
     total_frames = int(total * FPS)
 
@@ -443,21 +554,36 @@ def render(messages, out_mp4, out_poster):
         sc = scroll(t)
         n_entered = sum(1 for et in entry_time if t >= et)
         for i in range(n_entered):
+            c = cards[i]
             base_y = int(tops[i] - sc)
-            img = cards[i]["img"]
-            x = cards[i]["x"]
+            img = c["img"]
+            x = c["x"]
             if base_y > H or base_y + img.height < 0:
                 continue
-            if i == n_entered - 1:                    # pop the newest entrant
-                pp = (t - entry_time[i]) / D_POP
-                if pp < 1.0:
-                    s = 0.82 + 0.18 * ease_out_back(pp)
-                    im = with_alpha(scaled(img, s), min(1.0, pp * 1.6))
-                    dx = (im.width - img.width) // 2
-                    dy = (im.height - img.height) // 2
-                    frame.alpha_composite(im, (x - dx, base_y - dy))
-                    continue
-            frame.alpha_composite(img, (x, base_y))
+            # Still "typing": show the dots bubble at the slot's bottom.
+            if c["typing"] and t < c["msg_time"]:
+                tb = make_typing_bubble((t * 2.2) % 1.0)
+                ty = base_y + img.height - tb.height    # bottom-aligned
+                frame.alpha_composite(tb, (x, ty))
+                continue
+            # Pop the message on arrival.
+            pp = (t - c["msg_time"]) / D_POP
+            if i == n_entered - 1 and 0 <= pp < 1.0:
+                s = 0.82 + 0.18 * ease_out_back(pp)
+                im = with_alpha(scaled(img, s), min(1.0, pp * 1.6))
+                dx = (im.width - img.width) // 2
+                dy = (im.height - img.height) // 2
+                frame.alpha_composite(im, (x - dx, base_y - dy))
+            else:
+                frame.alpha_composite(img, (x, base_y))
+            # Reaction pill hanging off the bottom-left, popping in a touch later.
+            if c["react_img"] is not None and t >= c["msg_time"] + REACT_DELAY:
+                rp = c["react_img"]
+                rq = min(1.0, (t - c["msg_time"] - REACT_DELAY) / 0.3)
+                rimg = with_alpha(scaled(rp, 0.6 + 0.4 * ease_out_back(rq)), rq)
+                rx = x + 18 + 20
+                ry = base_y + img.height - 18 - 6 - rimg.height // 2
+                frame.alpha_composite(rimg, (rx, ry))
 
         frame.alpha_composite(HEADER, (0, 0))
         # Input bar: type the question out, then revert to the placeholder.
@@ -480,7 +606,7 @@ def render(messages, out_mp4, out_poster):
     compose(entry_time[min(4, len(cards) - 1)] + 0.25).save(out_poster)
     print(f"Saved poster -> {out_poster}")
 
-    tmp_mp4 = out_mp4 if find_audio() is None else out_mp4.replace(".mp4", ".silent.mp4")
+    tmp_mp4 = out_mp4.replace(".mp4", ".silent.mp4")
     writer = imageio.get_writer(
         tmp_mp4, fps=FPS, codec="libx264", macro_block_size=8,
         ffmpeg_params=["-crf", "20", "-preset", "medium",
@@ -493,26 +619,20 @@ def render(messages, out_mp4, out_poster):
     finally:
         writer.close()
 
-    audio = find_audio()
-    if audio:
-        mux_audio(tmp_mp4, audio, out_mp4, total)
-        os.remove(tmp_mp4)
-        print(f"Muxed audio from {os.path.basename(audio)}")
-    size_mb = os.path.getsize(out_mp4) / 1e6
-    print(f"Saved video -> {out_mp4} ({size_mb:.1f} MB)")
-
-
-def mux_audio(video: str, audio: str, out: str, dur: float):
+    # Sound effects only (no music): whoosh on send, ding per reply.
+    sfx_wav = out_mp4.replace(".mp4", ".sfx.wav")
+    sfx.build_track(total, sfx_wav, send_time=send_time, ding_times=ding_times)
     ff = imageio_ffmpeg.get_ffmpeg_exe()
     subprocess.run([
-        ff, "-y", "-loglevel", "error",
-        "-i", video, "-i", audio,
-        "-map", "0:v:0", "-map", "1:a:0",
-        "-t", f"{dur:.3f}",
+        ff, "-y", "-loglevel", "error", "-i", tmp_mp4, "-i", sfx_wav,
+        "-map", "0:v:0", "-map", "1:a:0", "-t", f"{total:.3f}",
         "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-        "-af", "afade=t=out:st=%.2f:d=1.2" % max(0, dur - 1.2),
-        "-shortest", "-movflags", "+faststart", out,
+        "-shortest", "-movflags", "+faststart", out_mp4,
     ], check=True)
+    os.remove(tmp_mp4)
+    os.remove(sfx_wav)
+    size_mb = os.path.getsize(out_mp4) / 1e6
+    print(f"Saved video -> {out_mp4} ({size_mb:.1f} MB)")
 
 
 if __name__ == "__main__":
